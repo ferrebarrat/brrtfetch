@@ -66,10 +66,10 @@ Additional prerequisite:
   go build -o ./bin/brrtfetch ./go/main.go && chmod +x ./bin/brrtfetch
 
   # Add to path
-  cp ./bin/brrtfetch /usr/local/bin/brrtfetch
+  sudo cp ./bin/brrtfetch /usr/local/bin/brrtfetch
 
   # Optional - Save gifs from repo before cleanup
-  mkdir -p /home/$USER/Pictures/brrtfetch
+  mkdir -p /home/$USER/Pictures/brrtfetch/gifs
   cp -r ./gifs/* /home/$USER/Pictures/brrtfetch/gifs
 
   # Cleanup
