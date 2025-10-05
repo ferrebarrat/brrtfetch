@@ -28,6 +28,8 @@ Think of it like a renderer that replaces the ASCII art for your fetcher with **
 
 ## 📦 Installation
 
+More comprehensive instructions for different distros and support for various package managers will be comming soon.
+
 Debian/Ubuntu based steps only for the initial release, it should work on any linux system as long as you replace apt with your package manager for the dependencies. You can install it on Windows and Mac if you want. Just translate the steps to Windows. Will try to add Winget support later so i don't have to make an install script/instructions for Powershell. I will also attempt to add support for all major Linux package managers and Brew.
 
 
