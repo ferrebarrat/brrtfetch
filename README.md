@@ -1,4 +1,4 @@
-<h3 align="center"><img src="./docs/brrtfetch-main-textlogo.png" alt="logo" height="100px"></h3>
+<h3 align="center"><img src="./docs/readme-md-brrtfetch-main-textlogo.png" alt="logo" height="100px"></h3>
 <p align="center"><img src="./docs/readme-md-main.gif" height="400px"></p>
 <p align="center"><i>Fastfetch config: https://github.com/xerolinux/xero-layan-git</i></p>
 
@@ -57,6 +57,9 @@ Additional prerequisite:
 * Go 1.20+ (I used Go 1.23.3, will assume 1.20+ works)
 
   ```bash
+  # Install Go (replace apt with your package manager like brew, yum, pacman etc)
+  sudo apt install golang
+
   # Build
   git clone https://github.com/ferrebarrat/brrtfetch
   cd brrtfetch 
@@ -64,6 +67,12 @@ Additional prerequisite:
 
   # Add to path
   cp ./bin/brrtfetch /usr/local/bin/brrtfetch
+
+  # Optional - Save gifs from repo before cleanup
+  mkdir -p /home/$USER/Pictures/brrtfetch
+  cp -r ./gifs/* /home/$USER/Pictures/brrtfetch/gifs
+
+  # Cleanup
   cd .. && rm -rf brrtfetch
   ```
 
@@ -78,7 +87,7 @@ Additional prerequisite:
 * **Ctrl-C** → attempts to exit the animation gracefully, clears and restores terminal, prints first frame with sysinfo and returns you to your prompt as if it was just a static fetcher.
 * Animation loops endlessly until interrupted with **CTRL-C**.
 
-<p><img src="./docs/readme-example-run.gif" height="300px"></p>
+<p><img src="./docs/readme-md-example-run.gif" height="300px"></p>
 
 ---
 
@@ -111,7 +120,7 @@ Additional prerequisite:
 * Fastfetch with custom config
 
   ```bash
-  brrtfetch -width 60 -height 60 -fps 20 -color=true -info "fastfetch --logo-type none --config hypr" debian.gif
+  brrtfetch -width 60 -height 60 -fps 20 -color=true -info "fastfetch --logo-type none --config hypr" /home/$USER/Pictures/brrtfetch/gifs/distro/linux/debian.gif
   ```
 
   This will render debian.gif as animated ASCII alongside the sysinfo from `fastfetch`
@@ -121,7 +130,7 @@ Additional prerequisite:
   You also **need a file that contains just a single space**, the example uses `hyfetch_single_space.txt` for that. This file with just a single space would be required even without the workaround since it is needed to omit the ASCII art from hyfetch, empty or non-existant files won't work.
 
   ```bash
-  brrtfetch -info "echo \"$(hyfetch --ascii-file=hyfetch_single_space.txt)\"" torvalds.gif
+  brrtfetch -info "echo \"$(hyfetch --ascii-file=hyfetch_single_space.txt)\"" /home/$USER/Pictures/brrtfetch/gifs/random/torvalds.gif
   ```
 
 * Neofetch
@@ -129,13 +138,13 @@ Additional prerequisite:
   Please note that the --off flag for `neofetch` does not work on Windows. In Windows you will need to play with the `neofetch` config to omit the art.
 
   ```bash
-  brrtfetch -width 60 -info "neofetch --off" /home/$USER/Pictures/gifs/gengar.gif
+  brrtfetch -width 60 -info "neofetch --off" /home/$USER/Pictures/brrtfetch/gifs/pokemon/gengar.gif
   ```
 
 * Screenfetch
 
   ```bash
-  brrtfetch -width 40 -height 40 -info "screenfetch -n" ./magikarp.gif
+  brrtfetch -width 40 -height 40 -info "screenfetch -n" /home/$USER/Pictures/brrtfetch/gifs/pokemon/magikarp.gif
   ```
 
 
@@ -185,6 +194,5 @@ Disclaimer: You are free (and strongly encouraged) to find alternatives to Meta 
 
 The octopus at the very top of this readme was generated using this exact method.
 
-## 🪪 License
 
-MIT License © 2025 Ferre Barrat
+Looking forward to seeing your creations on 
