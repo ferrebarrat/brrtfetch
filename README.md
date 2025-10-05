@@ -2,8 +2,8 @@
 <p align="center"><img src="./docs/readme-md-main.gif" height="400px"></p>
 <p align="center"><i>Fastfetch config: https://github.com/xerolinux/xero-layan-git</i></p>
 
-**Brrtfetch** is a modern animated system information fetch CLI tool written mainly in Go.
-It displays the user specified **GIF rendered as animated ASCII art** alongside your system information from your favourite fetcher.
+**Brrtfetch** is an animated system information fetcher written mainly in Go.
+It displays the user specified **GIF rendered as animated ASCII art** alongside the system information from your favourite fetcher.
 
 Think of it like a renderer that replaces the ASCII art for your fetcher with **animated** art. You only need to provide a .gif file.
 
@@ -13,7 +13,7 @@ Think of it like a renderer that replaces the ASCII art for your fetcher with **
 
 * Render animated GIFs as **colorful ASCII art** directly in your terminal.
 * Side-by-side system information via `fastfetch`, `neofetch`, or your fetcher of choice. I have only tested with `fastfetch`, `neofetch` and `hyfetch`. Hyfetch requires a small workaround and even then it's still a bit buggy with hyfetch. See examples below. 
-* **True color (24-bit ANSI)** support with optional grayscale mode.
+* **True color (24-bit ANSI)** support with optional white monochrome mode via `-color=false`.
 * **Multithreaded prerendering** for smooth playback.
 * Configurable:
 
@@ -28,12 +28,12 @@ Think of it like a renderer that replaces the ASCII art for your fetcher with **
 
 ## 📦 Installation
 
-Linux steps only for the initial release. You can install it on Windows and Mac if you want. Just translate the steps to Windows. Will try to add Winget support later so i don't have to make an install script/instructions for Powershell. I will also attempt to add package manager support later for all major ones.
+Debian/Ubuntu based steps only for the initial release, it should work on any linux system as long as you replace apt with your package manager for the dependencies. You can install it on Windows and Mac if you want. Just translate the steps to Windows. Will try to add Winget support later so i don't have to make an install script/instructions for Powershell. I will also attempt to add support for all major Linux package managers and Brew.
 
 
 ### Prerequisites
 
-* A terminal that supports ANSI colors and escape sequences. Most modern terminal support will.
+* A terminal that supports ANSI colors and escape sequences. Almost all modern terminsals do.
 * `Script` (Linux only) 
 
   Optional but highly recommended for sysinfo color support. Part of the **bsdutils** package. Comes by default on most systems. Check with "which script"
@@ -44,7 +44,7 @@ Linux steps only for the initial release. You can install it on Windows and Mac 
 
   * [fastfetch](https://github.com/fastfetch-cli/fastfetch) (default)
   * [hyfetch](https://github.com/hykilpikonna/hyfetch)
-  * Or any command you like, it can be specified with '-info "neofetch --off"' or even '-info "echo $USER"' or anything custom if you want.
+  * Or any command you like, it can be specified with `-info "neofetch --off"` or even `-info "echo $USER"` or anything custom if you want.
 
   ```bash
   apt install fastfetch # only works on Debian 13+, see fastfetch docs for other version and distros
