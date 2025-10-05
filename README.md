@@ -154,9 +154,9 @@ Additional prerequisite:
 
 * Brrtfetch will try to preserve ANSI color output for the sysinfo from your fetcher.
 
-  1. Uses `script` if available (best for color preservation).
-  2. Falls back to `unbuffer`.
-  3. Otherwise runs the command specified with `-info` normally without `script` or `unbuffer`. 
+  * Uses `script` if available (best for color preservation).
+  * Falls back to `unbuffer`.
+  * Otherwise runs the command specified with `-info` normally without `script` or `unbuffer`. 
 
 * I'm not a programmer by trade and have close to 0 experience in Go besides this project. Keep that in mind when judging the code and voicing any strong opinions please. Actual feedback is always apreciated! Same goes for working with ANSI stuff, this was my very first time playing with that.
 
