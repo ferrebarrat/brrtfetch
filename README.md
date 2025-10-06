@@ -2,8 +2,7 @@
 <p align="center"><img src="./docs/readme-md-main.gif" height="400px"></p>
 <p align="center"><i>Fastfetch config: https://github.com/xerolinux/xero-layan-git</i></p>
 
-**Brrtfetch** is an animated system information fetcher written mainly in Go.
-It displays the user specified **GIF rendered as animated ASCII art** alongside the system information from your favourite fetcher.
+**Brrtfetch** is an animated system information fetcher written mainly in Go. Please keep in mind that it is still in it's very early stage of development. It displays the user specified **GIF rendered as animated ASCII art** alongside the system information from your favourite fetcher.
 
 Think of it like a renderer that replaces the ASCII art for your fetcher with **animated** art. You only need to provide a .gif file.
 
