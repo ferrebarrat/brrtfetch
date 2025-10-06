@@ -309,10 +309,15 @@ func runCommand(commandLine string) string {
 		return string(out), err
 	}
 
+	flags := []string{"-qefc"}
+		if runtime.GOOS == "darwin" {
+			flags = []string{"-q -c"}
+	}
+
 	// 1) Try `script` with safe flags
 	if _, err := exec.LookPath("script"); err == nil {
 		// -q quiet, -e exit immediately, -f flush, -c to run command, /dev/null as log
-		out, _ := run("script", "-qefc", commandLine+" 2>/dev/null", "/dev/null")
+		out, _ := run("script", append(flags, commandLine+" 2>/dev/null", "/dev/null")...)
 		return out
 	}
 
