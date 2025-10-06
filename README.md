@@ -121,10 +121,15 @@ Additional prerequisite:
   brrtfetch -info "fastfetch --logo-type none" /path/to/file.gif
   ```
 
+* Command to replicate GIF at the top of this readme
+  ```bash
+  brrtfetch -width 80 -fps 17 -multiplier 10 -offset 3 /home/$USER/Pictures/brrtfetch/gifs/defaults/brrt.gif
+  ```
+
 * Fastfetch with custom config
 
   ```bash
-  brrtfetch -width 60 -height 60 -fps 20 -color=true -info "fastfetch --logo-type none --config hypr" /home/$USER/Pictures/brrtfetch/gifs/distro/linux/debian.gif
+  brrtfetch -width 60 -height 60 -fps 20 -color=true -info "fastfetch --logo-type none --config hypr" /home/$USER/Pictures/brrtfetch/gifs/defaults/brrt.gif
   ```
 
   This will render debian.gif as animated ASCII alongside the sysinfo from `fastfetch`
@@ -179,7 +184,7 @@ Additional prerequisite:
 | ------------------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EndevourOS (Arch Linux)        | `Fastfetch`, `Neofetch`, `Screenfetch` | No major issues, this is the current baseline to which i will compare the rest to.                                                                       |
 | Ubuntu (WSL)                   | `Fastfetch`, `Neofetch`, `Screenfetch` | No major issues.                                                                                                                                         |
-| Windows 11                     | `Fastfetch`                            | No colors for sysinfo. `Neofetch --off` does not work on Windows, you will have to disable the art via the conf files for `neofetch` on Windows.           |
+| Windows 11                     | `Fastfetch`                            | No colors for sysinfo. `Neofetch --off` does not work on Windows, you will have to disable the art via the conf files for `neofetch` on Windows.         |
 | \<Any>                         | `Hyfetch`                              | Workaround required (see examples) or it won't show any sysinfo at all. First line (usually hostname) is inside of the ASCII art. No colors for sysinfo. |
 
 ---
