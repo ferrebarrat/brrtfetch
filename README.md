@@ -28,14 +28,14 @@ Think of it like a renderer that replaces the ASCII art for your fetcher with **
 
 ## 📦 Installation
 
-More comprehensive instructions for different distros and support for various package managers will be comming soon.
+More comprehensive instructions for different distros and support for various package managers will be coming soon.
 
 Debian/Ubuntu based steps only for the initial release, it should work on any linux system as long as you replace apt with your package manager for the dependencies. You can install it on Windows and Mac if you want. Just translate the steps to Windows. Will try to add Winget support later so i don't have to make an install script/instructions for Powershell. I will also attempt to add support for all major Linux package managers and Brew.
 
 
 ### Prerequisites
 
-* A terminal that supports ANSI colors and escape sequences. Almost all modern terminsals do.
+* A terminal that supports ANSI colors and escape sequences. Almost all modern terminals do.
 * `Script` (Linux only) 
 
   Optional but highly recommended for sysinfo color support. Part of the **bsdutils** package. Comes by default on most systems. Check with "which script"
@@ -129,7 +129,7 @@ Additional prerequisite:
 
 * Hyfetch: Only works with this `echo` workaround for now. It's still a bit buggy, first line is inside art and no sysinfo colors at the moment. 
 
-  You also **need a file that contains just a single space**, the example uses `hyfetch_single_space.txt` for that. This file with just a single space would be required even without the workaround since it is needed to omit the ASCII art from hyfetch, empty or non-existant files won't work.
+  You also **need a file that contains just a single space**, the example uses `hyfetch_single_space.txt` for that. This file with just a single space would be required even without the workaround since it is needed to omit the ASCII art from hyfetch, empty or non-existent files won't work.
 
   ```bash
   brrtfetch -info "echo \"$(hyfetch --ascii-file=hyfetch_single_space.txt)\"" /home/$USER/Pictures/brrtfetch/gifs/random/torvalds.gif
@@ -169,7 +169,7 @@ Additional prerequisite:
 * The sysinfo does not have color support on Windows except for WSL.
 * Loss of detail: The width and height flags form a sort of virtual screen. You can pretend each ASCII character is a virtual pixel. Ask yourself the question, would this GIF look good on a screen of 50px by 50px. If yes it will also look good in brrtfetch if you set the width and height to 50.
 * For some systems the animated GIFs can appear a bit stretched. You can fix this by playing with the `-width` and `-height` flags. This probably has something to do with spacing between your individual ASCII characters beings smaller then most systems. I only encountered this on my Arch/Hyprland machine. This is not a bug in brrtfetch.
-* Increasing the value of the `-fps` flag wil increase the speed of the animation and vice versa for decreasing.
+* Increasing the value of the `-fps` flag will increase the speed of the animation and vice versa for decreasing.
 * Does not auto detect distro. If you don't specify a GIF it will complain for now. Might add OS/distro detection after i have some nice GIFs for all major distro logo's. 
 
 ## 🧪 Tested on
@@ -184,11 +184,11 @@ Additional prerequisite:
 
 ## 👾 Create your own animated GIFs from scratch (external tools)
 
-Disclaimer: You are free (and strongly encouraged) to find alternatives to Meta for animating the static image in the steps below. It's the best i could find that allows you to generate a bunch of animations for 'free'. If you have the processing power and don't mind getting your hands dirty you could setup your own Open-Sora: https://github.com/hpcaitech/Open-Sora. 
+Disclaimer: You are free (and strongly encouraged) to find alternatives to Meta for animating the static image in the steps below. It's the best I could find that allows you to generate a bunch of animations for 'free'. If you have the processing power and don't mind getting your hands dirty you could setup your own Open-Sora: https://github.com/hpcaitech/Open-Sora. 
 
 1. Use your preferred AI to generate a static image of something you want to animate. If you want it to have a transparent background in your terminal later, ask it to use a "greenscreen type green" background. This is important for later. 
 2. Open Meta Vibes in your browser, login and go to the create tab. Now change from image to video, add your static image generated in step 1 and provide the prompt that tells Meta how to animate it.
-3. Download the .mp4 and convert it to a GIF with your preffered online or CLI tool.
+3. Download the .mp4 and convert it to a GIF with your preferred online or CLI tool.
 4. Upload the GIF to https://onlinegiftools.com/create-transparent-gif. Select your background color (eg green, white, black, ... ) under 'Tool Options' -> 'Transparent Regions' and play with the percentage input under it until it looks like a GIF with a transparent background.  
 5. You can now click 'Save as...' to download your final GIF that is now ready to use in brrtfetch
 
