@@ -7,6 +7,8 @@ It displays the user specified **GIF rendered as animated ASCII art** alongside 
 
 Think of it like a renderer that replaces the ASCII art for your fetcher with **animated** art. You only need to provide a .gif file.
 
+Did not test on Mac. A friend of mine just told sysinfo fetching is broken on Mac. Will look into a fix.
+
 ---
  
 ## ✨ Features
