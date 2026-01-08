@@ -8,7 +8,7 @@ Think of it like a renderer that replaces the ASCII art for your fetcher with **
 
 Broken on MacOS. It does not display sysinfo. I do not own any Apple devices so apologies if this takes a while to fix.
 
-In the next version I plan to use a new way of deciding what to put where in the terminal. It should be way more stable. No more color bugs, already confirmed hyfetch works(no workaround needed),the issue with illegal flags for the script binary on MacOS will also be resolved in the upcoming release. You can also expect a very cool new feature which I have not seen on any other animated fetchers when the new update is released.
+In the next version I plan to use a new way of deciding what to put where in the terminal. It should be way more stable but it might take a while. 
 
 ---
  
@@ -201,6 +201,3 @@ Disclaimer: You are free (and strongly encouraged) to find alternatives to Meta 
 5. You can now click 'Save as...' to download your final GIF that is now ready to use in brrtfetch
 
 The octopus at the very top of this readme was generated using this exact method.
-
-
-Looking forward to seeing your creations on 
