@@ -10,6 +10,8 @@ Broken on MacOS. It does not display sysinfo. I do not own any Apple devices so 
 
 In the next version I plan to use a new way of deciding what to put where in the terminal. It should be way more stable but it might take a while. 
 
+AI was used to create this project. 
+
 ---
  
 ## ✨ Features
