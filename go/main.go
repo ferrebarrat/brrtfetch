@@ -116,7 +116,9 @@ func main() {
 		select {
 		case sig := <-sigs:
 			if sig == syscall.SIGWINCH {
-				if resizeTimer != nil { resizeTimer.Stop() }
+				if resizeTimer != nil {
+					resizeTimer.Stop()
+				}
 				resizeTimer = time.AfterFunc(200*time.Millisecond, func() { sigs <- syscall.SIGUSR1 })
 			} else if sig == syscall.SIGUSR1 {
 				termW, _ := getTerminalSize()
@@ -135,7 +137,7 @@ func main() {
 				// EXIT HANDLER: Ctrl+C or Terminate
 				// 1. Leave Alt Buffer
 				fmt.Print("\033[?1049l" + ANSI_SHOW_CURSOR)
-				
+
 				// 2. Print the last known frame to the standard scrollback
 				if len(prevFrameLines) > 0 {
 					for _, line := range prevFrameLines {
@@ -146,19 +148,27 @@ func main() {
 			}
 
 		case <-ticker.C:
-			if len(prerendered) == 0 { continue }
+			if len(prerendered) == 0 {
+				continue
+			}
 
 			safeIdx := frameIdx % len(prerendered)
 			currentFrameLines := composeFrame(prerendered[safeIdx], sysInfoBytes, *oPtr, currentCfg.Width)
 
 			writer.WriteString(ANSI_HOME)
 			maxH := len(currentFrameLines)
-			if len(prevFrameLines) > maxH { maxH = len(prevFrameLines) }
+			if len(prevFrameLines) > maxH {
+				maxH = len(prevFrameLines)
+			}
 
 			for y := 0; y < maxH; y++ {
 				var currLine, prevLine []byte
-				if y < len(currentFrameLines) { currLine = currentFrameLines[y] }
-				if y < len(prevFrameLines) { prevLine = prevFrameLines[y] }
+				if y < len(currentFrameLines) {
+					currLine = currentFrameLines[y]
+				}
+				if y < len(prevFrameLines) {
+					prevLine = prevFrameLines[y]
+				}
 
 				if bytes.Equal(currLine, prevLine) {
 					writer.WriteString(ANSI_CURSOR_DOWN)
@@ -183,7 +193,9 @@ func main() {
 func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][]byte {
 	gifLines := bytes.Split(frameData, []byte("\n"))
 	totalH := len(gifLines)
-	if len(sysInfo)+offset > totalH { totalH = len(sysInfo) + offset }
+	if len(sysInfo)+offset > totalH {
+		totalH = len(sysInfo) + offset
+	}
 
 	result := make([][]byte, totalH)
 	for y := 0; y < totalH; y++ {
@@ -216,19 +228,27 @@ func resolveDimensions(base Config, flagW, flagH, termW int) Config {
 	cfg := base
 	if flagW <= 0 {
 		cfg.Width = int(float64(termW) * 0.40)
-		if cfg.Width < 20 { cfg.Width = 20 }
+		if cfg.Width < 20 {
+			cfg.Width = 20
+		}
 	} else {
 		cfg.Width = flagW
 	}
 	cfg.Height = flagH
-	if flagH == -1 { cfg.Height = cfg.Width / 2 }
-	if cfg.Height < 1 { cfg.Height = 1 }
+	if flagH == -1 {
+		cfg.Height = cfg.Width / 2
+	}
+	if cfg.Height < 1 {
+		cfg.Height = 1
+	}
 	return cfg
 }
 
 func getFrameSequence(g *gif.GIF, path string, cfg Config) [][]byte {
 	cachePath := getCachePath(path, cfg)
-	if cached, err := loadCache(cachePath, cfg); err == nil { return cached }
+	if cached, err := loadCache(cachePath, cfg); err == nil {
+		return cached
+	}
 	rendered := processGif(g, cfg)
 	saveCache(cachePath, rendered, cfg)
 	return rendered
@@ -243,7 +263,9 @@ func loadRawGif(path string) *gif.GIF {
 
 func toBytes(lines []string) [][]byte {
 	b := make([][]byte, len(lines))
-	for i, s := range lines { b[i] = []byte(s) }
+	for i, s := range lines {
+		b[i] = []byte(s)
+	}
 	return b
 }
 
@@ -251,7 +273,9 @@ func getTerminalSize() (int, int) {
 	cmd := exec.Command("stty", "size")
 	cmd.Stdin = os.Stdin
 	out, err := cmd.Output()
-	if err != nil { return 80, 24 }
+	if err != nil {
+		return 80, 24
+	}
 	parts := strings.Fields(string(out))
 	h, _ := strconv.Atoi(parts[0])
 	w, _ := strconv.Atoi(parts[1])
@@ -303,14 +327,18 @@ func processGif(g *gif.GIF, cfg Config) [][]byte {
 					draw.Draw(fullFrame, lastBounds, image.NewUniform(color.Transparent), image.Point{}, draw.Src)
 				}
 			}
-			if int(g.Disposal[i]) == gif.DisposalPrevious { copy(snapshot.Pix, fullFrame.Pix) }
+			if int(g.Disposal[i]) == gif.DisposalPrevious {
+				copy(snapshot.Pix, fullFrame.Pix)
+			}
 			draw.Draw(fullFrame, frame.Bounds(), frame, frame.Bounds().Min, draw.Over)
 			lastDisposal = int(g.Disposal[i])
 			lastBounds = frame.Bounds()
 
 			proc := <-imageBufferPool
 			copy(proc.Pix, fullFrame.Pix)
-			if cfg.DitherIntensity > 0 { applyDithering(proc, cfg.DitherIntensity) }
+			if cfg.DitherIntensity > 0 {
+				applyDithering(proc, cfg.DitherIntensity)
+			}
 			jobs <- RenderJob{Index: i, Image: proc, PoolKey: proc}
 		}
 		close(jobs)
@@ -319,7 +347,9 @@ func processGif(g *gif.GIF, cfg Config) [][]byte {
 	res := make([][]byte, len(g.Image))
 	done := make(chan bool)
 	go func() {
-		for r := range results { res[r.Index] = r.Data }
+		for r := range results {
+			res[r.Index] = r.Data
+		}
 		done <- true
 	}()
 	wg.Wait()
@@ -345,15 +375,30 @@ func renderToBuffer(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
 				lum2 := 0.21*float64(r2) + 0.72*float64(g2) + 0.07*float64(b2)
 				thresh := 100.0 * cfg.Multiplier
 				t, b := a1 > 0 && lum1 > thresh, a2 > 0 && lum2 > thresh
-				if t && b { buf.WriteString(FULL_BLOCK) } else if t { buf.WriteString(UPPER_HALF_BLOCK) } else if b { buf.WriteString(LOWER_HALF_BLOCK) } else { buf.WriteByte(' ') }
+				if t && b {
+					buf.WriteString(FULL_BLOCK)
+				} else if t {
+					buf.WriteString(UPPER_HALF_BLOCK)
+				} else if b {
+					buf.WriteString(LOWER_HALF_BLOCK)
+				} else {
+					buf.WriteByte(' ')
+				}
 			} else {
-				if a1 == 0 && a2 == 0 { buf.WriteString("\x1b[0m ")
-				} else if a1 > 0 && a2 == 0 { fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[49m%s", r1, g1, b1, UPPER_HALF_BLOCK)
-				} else if a1 == 0 && a2 > 0 { fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[49m%s", r2, g2, b2, LOWER_HALF_BLOCK)
-				} else { fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm%s", r1, g1, b1, r2, g2, b2, UPPER_HALF_BLOCK) }
+				if a1 == 0 && a2 == 0 {
+					buf.WriteString("\x1b[0m ")
+				} else if a1 > 0 && a2 == 0 {
+					fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[49m%s", r1, g1, b1, UPPER_HALF_BLOCK)
+				} else if a1 == 0 && a2 > 0 {
+					fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[49m%s", r2, g2, b2, LOWER_HALF_BLOCK)
+				} else {
+					fmt.Fprintf(buf, "\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm%s", r1, g1, b1, r2, g2, b2, UPPER_HALF_BLOCK)
+				}
 			}
 		}
-		if y < cfg.Height-1 { buf.WriteByte('\n') }
+		if y < cfg.Height-1 {
+			buf.WriteByte('\n')
+		}
 	}
 }
 
@@ -365,11 +410,15 @@ func getCachePath(path string, cfg Config) string {
 
 func loadCache(path string, cfg Config) ([][]byte, error) {
 	f, err := os.Open(path)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer f.Close()
 	var data CacheData
 	gob.NewDecoder(f).Decode(&data)
-	if data.Config.DitherIntensity != cfg.DitherIntensity { return nil, fmt.Errorf("cfg") }
+	if data.Config.DitherIntensity != cfg.DitherIntensity {
+		return nil, fmt.Errorf("cfg")
+	}
 	return data.Frames, nil
 }
 
@@ -383,12 +432,20 @@ func applyDithering(img *image.RGBA, intensity float64) {
 	bounds := img.Bounds()
 	w, h := bounds.Dx(), bounds.Dy()
 	clamp := func(v float64) uint8 {
-		if v < 0 { return 0 }; if v > 255 { return 255 }; return uint8(v)
+		if v < 0 {
+			return 0
+		}
+		if v > 255 {
+			return 255
+		}
+		return uint8(v)
 	}
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			idx := y*img.Stride + x*4
-			if img.Pix[idx+3] < 128 { continue }
+			if img.Pix[idx+3] < 128 {
+				continue
+			}
 			oldR, oldG, oldB := float64(img.Pix[idx]), float64(img.Pix[idx+1]), float64(img.Pix[idx+2])
 			qStep := 48.0 * intensity
 			newR, newG, newB := float64(int(oldR/qStep+0.5))*qStep, float64(int(oldG/qStep+0.5))*qStep, float64(int(oldB/qStep+0.5))*qStep
@@ -404,31 +461,75 @@ func applyDithering(img *image.RGBA, intensity float64) {
 					}
 				}
 			}
-			diffuse(x+1, y, 7.0/16.0); diffuse(x-1, y+1, 3.0/16.0); diffuse(x, y+1, 5.0/16.0); diffuse(x+1, y+1, 1.0/16.0)
+			diffuse(x+1, y, 7.0/16.0)
+			diffuse(x-1, y+1, 3.0/16.0)
+			diffuse(x, y+1, 5.0/16.0)
+			diffuse(x+1, y+1, 1.0/16.0)
 		}
 	}
 }
 
+func getRealShellName() string {
+	// 1. Get the Parent Process ID of brrtfetch
+	ppid := os.Getppid()
+	
+	// 2. Use 'ps' to get the name of that parent process
+	// -p specifies the PID, -o comm= tells ps to only output the command name
+	cmd := exec.Command("ps", "-p", strconv.Itoa(ppid), "-o", "comm=")
+	out, err := cmd.Output()
+	
+	if err != nil {
+		// Fallback to env var if ps fails
+		s := os.Getenv("SHELL")
+		if s == "" { return "sh" }
+		return filepath.Base(s)
+	}
+	
+	return strings.TrimSpace(string(out))
+}
+
 func runCommand(cmdLine string) string {
 	if cmdLine == "" { return "" }
+
 	var cmd *exec.Cmd
+	// Use the generic shell executor
 	if runtime.GOOS == "darwin" {
-		cmd = exec.Command("script", "-q", "/dev/null", "bash", "-c", cmdLine)
+		cmd = exec.Command("script", "-q", "/dev/null", "sh", "-c", cmdLine)
 	} else {
 		cmd = exec.Command("script", "-qec", cmdLine, "/dev/null")
 	}
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLORTERM=truecolor")
+
+	cmd.Env = append(os.Environ(),
+		"TERM=xterm-256color",
+		"COLORTERM=truecolor",
+	)
+
 	out, _ := cmd.CombinedOutput()
 	return string(out)
 }
 
 func getCommandOutputLines(cmd string) []string {
 	out := runCommand(cmd)
+
+	// Get our own binary name (e.g., "brrtfetch")
+	exe, _ := os.Executable()
+	binName := filepath.Base(exe)
+
+	// Get the ACTUAL parent shell name via PPID
+	shellName := getRealShellName()
+
+	// Clean up the output: Replace "brrtfetch" with the actual shell name
+	if binName != "" && binName != shellName {
+		out = strings.ReplaceAll(out, binName, shellName)
+	}
+
 	raw := strings.Split(out, "\n")
 	var res []string
 	for _, l := range raw {
 		l = strings.TrimRight(l, "\r\n")
-		if l != "" { res = append(res, l) }
+		if l != "" {
+			res = append(res, l)
+		}
 	}
 	return res
 }
