@@ -74,6 +74,7 @@ const (
 func main() {
 	wPtr := flag.Int("width", 0, "Width (0 = auto-scale)")
 	hPtr := flag.Int("height", -1, "Height (-1 = auto-aspect)")
+	sPtr := flag.Int("scale", 40, "Percentage of screen to use when autoscaling")
 	fPtr := flag.Int("fps", 20, "Frames per second")
 	cPtr := flag.Bool("color", true, "Enable color")
 	mPtr := flag.Float64("multiplier", 1.2, "Brightness multiplier")
@@ -94,7 +95,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGWINCH)
 
 	termW, _ := getTerminalSize()
-	currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, termW)
+	currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW)
 
 	rawGif := loadRawGif(gifPath)
 	prerendered := getFrameSequence(rawGif, gifPath, currentCfg)
@@ -122,7 +123,7 @@ func main() {
 				resizeTimer = time.AfterFunc(200*time.Millisecond, func() { sigs <- syscall.SIGUSR1 })
 			} else if sig == syscall.SIGUSR1 {
 				termW, _ := getTerminalSize()
-				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, termW)
+				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW)
 				if newCfg.Width != currentCfg.Width || newCfg.Height != currentCfg.Height {
 					currentCfg = newCfg
 					writer.WriteString("\033[2J\033[H")
@@ -224,10 +225,10 @@ func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][
 	return result
 }
 
-func resolveDimensions(base Config, flagW, flagH, termW int) Config {
+func resolveDimensions(base Config, flagW, flagH, flagS, termW int) Config {
 	cfg := base
 	if flagW <= 0 {
-		cfg.Width = int(float64(termW) * 0.40)
+		cfg.Width = int(float64(termW) * float64(flagS) / 100)
 		if cfg.Width < 20 {
 			cfg.Width = 20
 		}
