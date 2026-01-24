@@ -62,13 +62,16 @@ var (
 )
 
 const (
-	ANSI_HIDE_CURSOR = "\033[?25l"
-	ANSI_SHOW_CURSOR = "\033[?25h"
-	ANSI_HOME        = "\033[H"
-	ANSI_CURSOR_DOWN = "\033[1B"
-	UPPER_HALF_BLOCK = "▀"
-	LOWER_HALF_BLOCK = "▄"
-	FULL_BLOCK       = "█"
+	ANSI_HIDE_CURSOR  = "\033[?25l"
+	ANSI_SHOW_CURSOR  = "\033[?25h"
+	ANSI_HOME         = "\033[H"
+	ANSI_CURSOR_DOWN  = "\033[1B"
+	ANSI_DISABLE_WRAP = "\033[?7l"
+	ANSI_ENABLE_WRAP  = "\033[?7h"
+	ANSI_CLEAR_LINE   = "\x1b[K"
+	UPPER_HALF_BLOCK  = "▀"
+	LOWER_HALF_BLOCK  = "▄"
+	FULL_BLOCK        = "█"
 )
 
 func main() {
@@ -78,7 +81,7 @@ func main() {
 	fPtr := flag.Int("fps", 20, "Frames per second")
 	cPtr := flag.Bool("color", true, "Enable color")
 	mPtr := flag.Float64("multiplier", 1.2, "Brightness multiplier")
-	diPtr := flag.Float64("dither-intensity", 0.2, "Dither intensity")
+	diPtr := flag.Float64("dither", 0, "Dither intensity")
 	iPtr := flag.String("info", "fastfetch --logo-type none", "Info command")
 	oPtr := flag.Int("offset", 0, "Top offset")
 	flag.Parse()
@@ -94,18 +97,18 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGWINCH)
 
-	termW, _ := getTerminalSize()
-	currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW)
-
+	// Load GIF first to get its original dimensions for scaling math
 	rawGif := loadRawGif(gifPath)
+	termW, termH := getTerminalSize()
+	currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
+
 	prerendered := getFrameSequence(rawGif, gifPath, currentCfg)
 	sysInfo := getCommandOutputLines(*iPtr)
 	sysInfoBytes := toBytes(sysInfo)
 
-	// Enter Alt Buffer
-	fmt.Print("\033[?1049h" + ANSI_HIDE_CURSOR)
+	fmt.Print("\033[?1049h" + ANSI_HIDE_CURSOR + ANSI_DISABLE_WRAP)
 
-	writer := bufio.NewWriterSize(os.Stdout, 64*1024)
+	writer := bufio.NewWriterSize(os.Stdout, 128*1024)
 	var prevFrameLines [][]byte
 	ticker := time.NewTicker(time.Second / time.Duration(baseCfg.FPS))
 	defer ticker.Stop()
@@ -122,11 +125,14 @@ func main() {
 				}
 				resizeTimer = time.AfterFunc(200*time.Millisecond, func() { sigs <- syscall.SIGUSR1 })
 			} else if sig == syscall.SIGUSR1 {
-				termW, _ := getTerminalSize()
-				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW)
+				termW, termH = getTerminalSize()
+				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
+				
+				// Force clear and re-enable wrap disable on resize
+				writer.WriteString("\033[2J\033[H" + ANSI_DISABLE_WRAP)
+				
 				if newCfg.Width != currentCfg.Width || newCfg.Height != currentCfg.Height {
 					currentCfg = newCfg
-					writer.WriteString("\033[2J\033[H")
 					writer.Flush()
 					sysInfo = getCommandOutputLines(*iPtr)
 					sysInfoBytes = toBytes(sysInfo)
@@ -135,11 +141,7 @@ func main() {
 					prevFrameLines = nil
 				}
 			} else {
-				// EXIT HANDLER: Ctrl+C or Terminate
-				// 1. Leave Alt Buffer
-				fmt.Print("\033[?1049l" + ANSI_SHOW_CURSOR)
-
-				// 2. Print the last known frame to the standard scrollback
+				fmt.Print("\033[?1049l" + ANSI_SHOW_CURSOR + ANSI_ENABLE_WRAP)
 				if len(prevFrameLines) > 0 {
 					for _, line := range prevFrameLines {
 						fmt.Printf("%s\n", line)
@@ -154,7 +156,8 @@ func main() {
 			}
 
 			safeIdx := frameIdx % len(prerendered)
-			currentFrameLines := composeFrame(prerendered[safeIdx], sysInfoBytes, *oPtr, currentCfg.Width)
+			// Pass termW here so we can truncate lines that are too long
+			currentFrameLines := composeFrame(prerendered[safeIdx], sysInfoBytes, *oPtr, currentCfg.Width, termW, termH)
 
 			writer.WriteString(ANSI_HOME)
 			maxH := len(currentFrameLines)
@@ -163,21 +166,19 @@ func main() {
 			}
 
 			for y := 0; y < maxH; y++ {
-				var currLine, prevLine []byte
+				var currLine []byte
 				if y < len(currentFrameLines) {
 					currLine = currentFrameLines[y]
 				}
-				if y < len(prevFrameLines) {
-					prevLine = prevFrameLines[y]
-				}
 
-				if bytes.Equal(currLine, prevLine) {
+				if y < len(prevFrameLines) && bytes.Equal(currLine, prevFrameLines[y]) {
 					writer.WriteString(ANSI_CURSOR_DOWN)
 				} else {
 					if len(currLine) > 0 {
 						writer.Write(currLine)
+						writer.WriteString(ANSI_CLEAR_LINE)
 					} else {
-						writer.WriteString("\x1b[0m\x1b[K")
+						writer.WriteString("\x1b[0m" + ANSI_CLEAR_LINE)
 					}
 					writer.WriteString("\r\n")
 				}
@@ -191,11 +192,71 @@ func main() {
 
 // --- Helpers ---
 
-func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][]byte {
+func resolveDimensions(base Config, flagW, flagH, flagS, termW, termH, gifW, gifH int) Config {
+	cfg := base
+
+	// If user gave absolute dimensions, use them
+	if flagW > 0 && flagH > 0 {
+		cfg.Width, cfg.Height = flagW, flagH
+		return cfg
+	}
+
+	// Calculate maximum allowed space based on scale percentage
+	maxW := float64(termW) * (float64(flagS) / 100.0)
+	maxH := float64(termH) * (float64(flagS) / 100.0)
+
+	// In terminal, 1 character height is ~2 pixels.
+	// Aspect ratio is Width / (Height / 2)
+	gifRatio := float64(gifW) / (float64(gifH) / 2.0)
+
+	// Try fitting to width first
+	w := maxW
+	h := w / gifRatio
+
+	// If it overflows the height, fit to height instead
+	if h > maxH {
+		h = maxH
+		w = h * gifRatio
+	}
+
+	// Apply flag overrides if only one was provided
+	if flagW > 0 {
+		cfg.Width = flagW
+		cfg.Height = int(float64(cfg.Width) / gifRatio)
+	} else if flagH > 0 {
+		cfg.Height = flagH
+		cfg.Width = int(float64(cfg.Height) * gifRatio)
+	} else {
+		cfg.Width = int(w)
+		cfg.Height = int(h)
+	}
+
+	if cfg.Width < 2 {
+		cfg.Width = 2
+	}
+	if cfg.Height < 1 {
+		cfg.Height = 1
+	}
+
+	return cfg
+}
+
+func composeFrame(frameData []byte, sysInfo [][]byte, offset int, gifWidth int, termW, termH int) [][]byte {
 	gifLines := bytes.Split(frameData, []byte("\n"))
 	totalH := len(gifLines)
 	if len(sysInfo)+offset > totalH {
 		totalH = len(sysInfo) + offset
+	}
+
+	if totalH > termH-1 {
+		totalH = termH - 1
+	}
+
+	// Calculate how much space we have for the sysinfo text
+	// Padding is 3 spaces ("   ")
+	allowedTextWidth := termW - gifWidth - 3
+	if allowedTextWidth < 0 {
+		allowedTextWidth = 0
 	}
 
 	result := make([][]byte, totalH)
@@ -206,7 +267,7 @@ func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][
 		if y < len(gifLines) && len(gifLines[y]) > 0 {
 			buf.Write(gifLines[y])
 		} else {
-			buf.Write(bytes.Repeat([]byte(" "), width))
+			buf.Write(bytes.Repeat([]byte(" "), gifWidth))
 		}
 
 		buf.WriteString("\x1b[0m")
@@ -214,7 +275,9 @@ func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][
 		sIdx := y - offset
 		if sIdx >= 0 && sIdx < len(sysInfo) {
 			buf.WriteString("   ")
-			buf.Write(sysInfo[sIdx])
+			// Truncate the sysinfo line so it fits without wrapping
+			truncated := truncateAnsi(sysInfo[sIdx], allowedTextWidth)
+			buf.Write(truncated)
 		}
 
 		lineCopy := make([]byte, buf.Len())
@@ -225,24 +288,51 @@ func composeFrame(frameData []byte, sysInfo [][]byte, offset int, width int) [][
 	return result
 }
 
-func resolveDimensions(base Config, flagW, flagH, flagS, termW int) Config {
-	cfg := base
-	if flagW <= 0 {
-		cfg.Width = int(float64(termW) * float64(flagS) / 100)
-		if cfg.Width < 20 {
-			cfg.Width = 20
+// truncateAnsi cuts a bytestring to a specific visual width while preserving ANSI codes.
+func truncateAnsi(data []byte, maxLen int) []byte {
+	if maxLen <= 0 {
+		return []byte{}
+	}
+	var width int
+	var inAnsi bool
+	end := len(data)
+
+	for i := 0; i < len(data); i++ {
+		// Detect start of ANSI escape sequence
+		if data[i] == 0x1b {
+			inAnsi = true
+			continue
 		}
-	} else {
-		cfg.Width = flagW
+		// Detect end of ANSI escape sequence
+		if inAnsi {
+			// ANSI sequences typically end with letters (m, K, H, etc.)
+			if (data[i] >= 'a' && data[i] <= 'z') || (data[i] >= 'A' && data[i] <= 'Z') {
+				inAnsi = false
+			}
+			continue
+		}
+
+		// Count visual width (approximation: 1 byte = 1 column, ignoring UTF-8 continuation bytes)
+		// 0xC0 (11000000) & byte != 0x80 (10000000) means it's not a continuation byte
+		if (data[i] & 0xC0) != 0x80 {
+			width++
+		}
+
+		if width > maxLen {
+			end = i
+			break
+		}
 	}
-	cfg.Height = flagH
-	if flagH == -1 {
-		cfg.Height = cfg.Width / 2
+
+	// If we truncated, assume we need to reset colors to be safe
+	if end < len(data) {
+		res := make([]byte, end+4)
+		copy(res, data[:end])
+		copy(res[end:], []byte("\x1b[0m"))
+		return res
 	}
-	if cfg.Height < 1 {
-		cfg.Height = 1
-	}
-	return cfg
+
+	return data
 }
 
 func getFrameSequence(g *gif.GIF, path string, cfg Config) [][]byte {
@@ -471,59 +561,42 @@ func applyDithering(img *image.RGBA, intensity float64) {
 }
 
 func getRealShellName() string {
-	// 1. Get the Parent Process ID of brrtfetch
 	ppid := os.Getppid()
-	
-	// 2. Use 'ps' to get the name of that parent process
-	// -p specifies the PID, -o comm= tells ps to only output the command name
 	cmd := exec.Command("ps", "-p", strconv.Itoa(ppid), "-o", "comm=")
 	out, err := cmd.Output()
-	
 	if err != nil {
-		// Fallback to env var if ps fails
 		s := os.Getenv("SHELL")
-		if s == "" { return "sh" }
+		if s == "" {
+			return "sh"
+		}
 		return filepath.Base(s)
 	}
-	
 	return strings.TrimSpace(string(out))
 }
 
 func runCommand(cmdLine string) string {
-	if cmdLine == "" { return "" }
-
+	if cmdLine == "" {
+		return ""
+	}
 	var cmd *exec.Cmd
-	// Use the generic shell executor
 	if runtime.GOOS == "darwin" {
 		cmd = exec.Command("script", "-q", "/dev/null", "sh", "-c", cmdLine)
 	} else {
 		cmd = exec.Command("script", "-qec", cmdLine, "/dev/null")
 	}
-
-	cmd.Env = append(os.Environ(),
-		"TERM=xterm-256color",
-		"COLORTERM=truecolor",
-	)
-
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLORTERM=truecolor")
 	out, _ := cmd.CombinedOutput()
 	return string(out)
 }
 
 func getCommandOutputLines(cmd string) []string {
 	out := runCommand(cmd)
-
-	// Get our own binary name (e.g., "brrtfetch")
 	exe, _ := os.Executable()
 	binName := filepath.Base(exe)
-
-	// Get the ACTUAL parent shell name via PPID
 	shellName := getRealShellName()
-
-	// Clean up the output: Replace "brrtfetch" with the actual shell name
 	if binName != "" && binName != shellName {
 		out = strings.ReplaceAll(out, binName, shellName)
 	}
-
 	raw := strings.Split(out, "\n")
 	var res []string
 	for _, l := range raw {
