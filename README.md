@@ -2,6 +2,8 @@
 <p align="center"><img src="./docs/readme-md-main.gif" height="400px"></p>
 <p align="center"><i>Fastfetch config: https://github.com/xerolinux/xero-layan-git</i></p>
 
+This readme is not up to date with the changes in this branch yet.
+
 **Brrtfetch** is an animated system information fetcher written mainly in Go. Please keep in mind that it is still in it's very early stage of development. It displays the user specified **GIF rendered as animated ASCII art** alongside the system information from your favourite fetcher.
 
 Think of it like a renderer that replaces the ASCII art for your fetcher with **animated** art. You only need to provide a .gif file.
@@ -27,8 +29,6 @@ AI was used to create this project.
   * Brightness multiplier (controls density of ASCII mapping)
   * Vertical offset for aligning sysinfo height relative to  ASCII art
 * Attempts to preserves **ANSI color codes** from sysinfo commands (broken for hyfetch and Windows CMD/Powershell. WSL does show color for the sysinfo. Only tested this with Ubuntu for WSL).
-* If you can somehow render DOOM in GIF format you could technically use this to play DOOM in your fetcher. It would only be (re)rendered in brrtfetch, not actually run inside of it, at least for now ;)
-
 ---
 
 ## 📦 Installation
