@@ -67,7 +67,7 @@ func main() {
     *height = *height / 2
 
 	if flag.NArg() < 1 {
-		fmt.Println("Usage: gofetch [options] /path/to/file.gif")
+		fmt.Println("Usage: brrtfetch [options] /path/to/file.gif")
 		flag.PrintDefaults()
 		return
 	}
