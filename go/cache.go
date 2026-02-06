@@ -30,4 +30,4 @@ func saveCache(path string, frames [][]byte, cfg Config) {
     f, _ := os.Create(path)
     defer f.Close()
     gob.NewEncoder(f).Encode(CacheData{Frames: frames, Config: cfg})
-}
+} 

@@ -24,88 +24,111 @@ var (
 )
 
 func main() {
-    wPtr := flag.Int("width", 0, "Width")
-    hPtr := flag.Int("height", -1, "Height")
-    sPtr := flag.Int("scale", 40, "Scale %")
-    fPtr := flag.Int("fps", 20, "FPS")
-    cPtr := flag.Bool("color", true, "Color")
-    mPtr := flag.Float64("multiplier", 1.2, "Brightness")
-    diPtr := flag.Float64("dither", 0, "Dither")
-    iPtr := flag.String("info", "fastfetch --logo-type none", "Info cmd")
-    oPtr := flag.Int("offset", 0, "Top offset")
-    rPtr := flag.String("render", "half-block", "Render type: half-block")
-    flag.Parse()
+	// Start the timer immediately to capture flag parsing and GIF loading
+	startTime := time.Now()
 
-    if flag.NArg() < 1 {
-        fmt.Println("Usage: brrtfetch [options] file.gif")
-        return
-    }
+	wPtr := flag.Int("width", 0, "Width")
+	hPtr := flag.Int("height", -1, "Height")
+	sPtr := flag.Int("scale", 40, "Scale %")
+	fPtr := flag.Int("fps", 20, "FPS")
+	cPtr := flag.Bool("color", true, "Color")
+	mPtr := flag.Float64("multiplier", 1.2, "Brightness")
+	diPtr := flag.Float64("dither", 0, "Dither")
+	iPtr := flag.String("info", "fastfetch --logo-type none", "Info cmd")
+	oPtr := flag.Int("offset", 0, "Top offset")
+	rPtr := flag.String("render", "half-block", "Render type: half-block")
+	benchPtr := flag.Bool("benchmark", false, "Print time to first frame and exit")
+	flag.Parse()
 
-    gifPath, _ := filepath.Abs(flag.Arg(0))
-    baseCfg := Config{
-        FPS: *fPtr, Color: *cPtr, DitherIntensity: *diPtr, 
-        Multiplier: *mPtr, RenderMode: *rPtr,
-    }
+	if flag.NArg() < 1 {
+		fmt.Println("Usage: brrtfetch [options] file.gif")
+		fmt.Println("Use 'brrtfetch --help' for more info.")
+		return
+	}
 
-    sigs := make(chan os.Signal, 1)
-    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGWINCH)
+	gifPath, _ := filepath.Abs(flag.Arg(0))
+	baseCfg := Config{
+		FPS: *fPtr, Color: *cPtr, DitherIntensity: *diPtr,
+		Multiplier: *mPtr, RenderMode: *rPtr,
+	}
 
-    rawGif := loadRawGif(gifPath)
-    termW, termH := getTerminalSize()
-    currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGWINCH)
 
-    prerendered := getFrameSequence(rawGif, gifPath, currentCfg)
-    sysInfo := getCommandOutputLines(*iPtr)
-    
-    fmt.Print("\033[?1049h" + ANSI_HIDE_CURSOR + ANSI_DISABLE_WRAP)
-    writer := bufio.NewWriterSize(os.Stdout, 128*1024)
-    ticker := time.NewTicker(time.Second / time.Duration(baseCfg.FPS))
-    
-    var prevFrameLines [][]byte
-    frameIdx := 0
-    var resizeTimer *time.Timer
+	rawGif := loadRawGif(gifPath)
+	termW, termH := getTerminalSize()
+	currentCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
 
-    for {
-        select {
-        case sig := <-sigs:
-            if sig == syscall.SIGWINCH {
-                if resizeTimer != nil { resizeTimer.Stop() }
-                resizeTimer = time.AfterFunc(200*time.Millisecond, func() { sigs <- syscall.SIGUSR1 })
-            } else if sig == syscall.SIGUSR1 {
-                termW, termH = getTerminalSize()
-                newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
-                writer.WriteString("\033[2J\033[H" + ANSI_DISABLE_WRAP)
-                if newCfg.Width != currentCfg.Width || newCfg.Height != currentCfg.Height {
-                    currentCfg = newCfg
-                    prerendered = getFrameSequence(rawGif, gifPath, currentCfg)
-                    frameIdx = 0
-                    prevFrameLines = nil
-                }
-            } else {
-                fmt.Print("\033[?1049l" + ANSI_SHOW_CURSOR + ANSI_ENABLE_WRAP)
-                os.Exit(0)
-            }
-        case <-ticker.C:
-            if len(prerendered) == 0 { continue }
-            safeIdx := frameIdx % len(prerendered)
-            currentFrameLines := composeFrame(prerendered[safeIdx], sysInfo, *oPtr, currentCfg.Width, termW, termH)
+	prerendered := getFrameSequence(rawGif, gifPath, currentCfg)
+	sysInfo := getCommandOutputLines(*iPtr)
 
-            writer.WriteString(ANSI_HOME)
-            for y, line := range currentFrameLines {
-                if y < len(prevFrameLines) && bytes.Equal(line, prevFrameLines[y]) {
-                    writer.WriteString(ANSI_CURSOR_DOWN)
-                } else {
-                    writer.Write(line)
-                    writer.WriteString(ANSI_CLEAR_LINE + "\r\n")
-                }
-            }
-            writer.Flush()
-            prevFrameLines = currentFrameLines
-            frameIdx++
-        }
-    }
+	// Skip alternate buffer in benchmark mode so we can see the result in history
+	if !*benchPtr {
+		fmt.Print("\033[?1049h" + ANSI_HIDE_CURSOR + ANSI_DISABLE_WRAP)
+	}
+
+	writer := bufio.NewWriterSize(os.Stdout, 128*1024)
+	ticker := time.NewTicker(time.Second / time.Duration(baseCfg.FPS))
+
+	var prevFrameLines [][]byte
+	frameIdx := 0
+	var resizeTimer *time.Timer
+
+	for {
+		select {
+		case sig := <-sigs:
+			if sig == syscall.SIGWINCH {
+				if resizeTimer != nil {
+					resizeTimer.Stop()
+				}
+				resizeTimer = time.AfterFunc(200*time.Millisecond, func() { sigs <- syscall.SIGUSR1 })
+			} else if sig == syscall.SIGUSR1 {
+				termW, termH = getTerminalSize()
+				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
+				writer.WriteString("\033[2J\033[H" + ANSI_DISABLE_WRAP)
+				if newCfg.Width != currentCfg.Width || newCfg.Height != currentCfg.Height {
+					currentCfg = newCfg
+					prerendered = getFrameSequence(rawGif, gifPath, currentCfg)
+					frameIdx = 0
+					prevFrameLines = nil
+				}
+			} else {
+				if !*benchPtr {
+					fmt.Print("\033[?1049l" + ANSI_SHOW_CURSOR + ANSI_ENABLE_WRAP)
+				}
+				os.Exit(0)
+			}
+		case <-ticker.C:
+			if len(prerendered) == 0 {
+				continue
+			}
+			safeIdx := frameIdx % len(prerendered)
+			currentFrameLines := composeFrame(prerendered[safeIdx], sysInfo, *oPtr, currentCfg.Width, termW, termH)
+
+			writer.WriteString(ANSI_HOME)
+			for y, line := range currentFrameLines {
+				if y < len(prevFrameLines) && bytes.Equal(line, prevFrameLines[y]) {
+					writer.WriteString(ANSI_CURSOR_DOWN)
+				} else {
+					writer.Write(line)
+					writer.WriteString(ANSI_CLEAR_LINE + "\r\n")
+				}
+			}
+			
+			// The timer stops only after the buffer is flushed to the terminal
+			writer.Flush()
+
+			if *benchPtr {
+				duration := time.Since(startTime)
+				fmt.Printf("\n\x1b[1mBenchmark:\x1b[0m First frame fully rendered in %v\n", duration)
+				return
+			}
+
+			prevFrameLines = currentFrameLines
+			frameIdx++
+		}
+	}
 }
-
 // Logic implementations moved back into main for orchestration
 func processGif(g *gif.GIF, cfg Config) [][]byte {
     numWorkers := runtime.NumCPU()
