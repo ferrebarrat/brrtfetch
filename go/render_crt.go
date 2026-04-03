@@ -66,6 +66,9 @@ func (cr *CRTRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
 			}
 		}
 		// Reset formatting and newline
-		buf.WriteString("\x1b[0m\n")
+		buf.WriteString("\x1b[0m")
+		if y < cfg.Height-1 {
+			buf.WriteByte('\n')
+		}
 	}
 }

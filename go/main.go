@@ -86,11 +86,11 @@ func main() {
 				termW, termH = getTerminalSize()
 				newCfg := resolveDimensions(baseCfg, *wPtr, *hPtr, *sPtr, termW, termH, rawGif.Config.Width, rawGif.Config.Height)
 				writer.WriteString("\033[2J\033[H" + ANSI_DISABLE_WRAP)
+				prevFrameLines = nil
 				if newCfg.Width != currentCfg.Width || newCfg.Height != currentCfg.Height {
 					currentCfg = newCfg
 					prerendered = getFrameSequence(rawGif, gifPath, currentCfg)
 					frameIdx = 0
-					prevFrameLines = nil
 				}
 			} else {
 				if !*benchPtr {
@@ -106,11 +106,24 @@ func main() {
 			currentFrameLines := composeFrame(prerendered[safeIdx], sysInfo, *oPtr, currentCfg.Width, termW, termH)
 
 			writer.WriteString(ANSI_HOME)
-			for y, line := range currentFrameLines {
-				if y < len(prevFrameLines) && bytes.Equal(line, prevFrameLines[y]) {
+			maxH := len(currentFrameLines)
+			if len(prevFrameLines) > maxH {
+				maxH = len(prevFrameLines)
+			}
+			for y := 0; y < maxH; y++ {
+				var currLine, prevLine []byte
+				if y < len(currentFrameLines) {
+					currLine = currentFrameLines[y]
+				}
+				if y < len(prevFrameLines) {
+					prevLine = prevFrameLines[y]
+				}
+				if bytes.Equal(currLine, prevLine) {
 					writer.WriteString(ANSI_CURSOR_DOWN)
+				} else if len(currLine) > 0 {
+					writer.Write(currLine)
+					writer.WriteString(ANSI_CLEAR_LINE + "\r\n")
 				} else {
-					writer.Write(line)
 					writer.WriteString(ANSI_CLEAR_LINE + "\r\n")
 				}
 			}

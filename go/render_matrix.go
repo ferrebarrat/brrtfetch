@@ -56,7 +56,10 @@ func (mr *MatrixRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config)
 				buf.WriteString(char)
 			}
 		}
-		buf.WriteString("\x1b[0m\n")
+		buf.WriteString("\x1b[0m")
+		if y < cfg.Height-1 {
+			buf.WriteByte('\n')
+		}
 	}
 }
 

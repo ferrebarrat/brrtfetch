@@ -66,7 +66,10 @@ func (sr *SextantRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config
 				buf.WriteByte(' ')
 			}
 		}
-		buf.WriteString("\x1b[0m\n")
+		buf.WriteString("\x1b[0m")
+		if y < cfg.Height-1 {
+			buf.WriteByte('\n')
+		}
 	}
 }
 
