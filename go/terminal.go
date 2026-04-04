@@ -1,35 +1,54 @@
 package main
 
 import (
+    "fmt"
     "os"
     "os/exec"
     "path/filepath"
     "runtime"
     "strconv"
     "strings"
+    "syscall"
+    "unsafe"
 )
 
 const (
-    ANSI_HIDE_CURSOR   = "\033[?25l"
-    ANSI_SHOW_CURSOR   = "\033[?25h"
-    ANSI_HOME          = "\033[H"
-    ANSI_CURSOR_DOWN   = "\033[1B"
-    ANSI_DISABLE_WRAP  = "\033[?7l"
-    ANSI_ENABLE_WRAP   = "\033[?7h"
-    ANSI_CLEAR_LINE    = "\x1b[K"
+    ANSI_HIDE_CURSOR    = "\033[?25l"
+    ANSI_SHOW_CURSOR    = "\033[?25h"
+    ANSI_HOME           = "\033[H"
+    ANSI_CURSOR_DOWN    = "\033[1B"
+    ANSI_DISABLE_WRAP   = "\033[?7l"
+    ANSI_ENABLE_WRAP    = "\033[?7h"
+    ANSI_CLEAR_LINE     = "\x1b[K"
+    ANSI_SAVE_CURSOR    = "\033[s"
+    ANSI_RESTORE_CURSOR = "\033[u"
+    ANSI_RESET_SCROLL   = "\033[r"
+    ANSI_MOUSE_ON       = "\033[?1000h\033[?1006h"
+    ANSI_MOUSE_OFF      = "\033[?1000l\033[?1006l"
 )
 
+func SetScrollRegion(top, bottom int) string {
+    return fmt.Sprintf("\033[%d;%dr", top, bottom)
+}
+
+func MoveCursor(row, col int) string {
+    return fmt.Sprintf("\033[%d;%dH", row, col)
+}
+
 func getTerminalSize() (int, int) {
-    cmd := exec.Command("stty", "size")
-    cmd.Stdin = os.Stdin
-    out, err := cmd.Output()
-    if err != nil {
-        return 80, 24
+    var ws struct {
+        Row    uint16
+        Col    uint16
+        Xpixel uint16
+        Ypixel uint16
     }
-    parts := strings.Fields(string(out))
-    h, _ := strconv.Atoi(parts[0])
-    w, _ := strconv.Atoi(parts[1])
-    return w, h
+    for _, fd := range []uintptr{uintptr(syscall.Stdout), uintptr(syscall.Stdin), uintptr(syscall.Stderr)} {
+        _, _, err := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(syscall.TIOCGWINSZ), uintptr(unsafe.Pointer(&ws)))
+        if err == 0 && ws.Col > 0 && ws.Row > 0 {
+            return int(ws.Col), int(ws.Row)
+        }
+    }
+    return 80, 24
 }
 
 func truncateAnsi(data []byte, maxLen int) []byte {

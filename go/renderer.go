@@ -10,6 +10,18 @@ type Renderer interface {
     Render(buf *bytes.Buffer, img *image.RGBA, cfg Config)
 }
 
+// IsImageProtocol returns true for renderers that use terminal image protocols
+// (kitty, iterm, wezterm). These output binary blobs that must not be
+// line-split or re-transmitted every frame.
+func IsImageProtocol(mode string) bool {
+    switch mode {
+    case "kitty", "iterm", "wezterm":
+        return true
+    default:
+        return false
+    }
+}
+
 func GetRenderer(mode string) Renderer {
     switch mode {
     case "medusa":
