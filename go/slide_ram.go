@@ -97,7 +97,7 @@ func (s *RAMSlide) Render(width, height int) []string {
 	lines = append(lines, renderRow("󰍛", "Used", usedStr, ramLabelW, width))
 	lines = append(lines, renderRow("󰘚", "Free", formatBytes(free), ramLabelW, width))
 	lines = append(lines, renderRow("󰓅", "Buffers", formatBytes(buffers), ramLabelW, width))
-	lines = append(lines, renderRow("", "Cached", formatBytes(cached), ramLabelW, width))
+	lines = append(lines, renderRow("", "Cached", formatBytes(cached), ramLabelW, width))
 
 	lines = append(lines, "")
 

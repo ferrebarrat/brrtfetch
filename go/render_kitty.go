@@ -11,17 +11,10 @@ import (
 type KittyRenderer struct{}
 
 func (k *KittyRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
-<<<<<<< HEAD
-	// Save cursor so we can return to the top after the image is placed
-	buf.WriteString("\x1b[s")
-
-	// 1. Clear previous image ID 1
-=======
 	// Save cursor, move to top-left for image placement
 	buf.WriteString("\x1b[s\x1b[1;1H")
 
 	// Delete previous image ID 1
->>>>>>> bar-test
 	buf.WriteString("\x1b_Ga=d,d=i,i=1\x1b\\")
 
 	// Encode to PNG
@@ -33,12 +26,7 @@ func (k *KittyRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
 
 	b64Data := base64.StdEncoding.EncodeToString(pngBuf.Bytes())
 
-<<<<<<< HEAD
-	// 3. Chunk the Base64 data to prevent terminal crashes
-	// We send 4096 bytes at a time (standard safe chunk size)
-=======
 	// Chunk the base64 data (4096 bytes per chunk)
->>>>>>> bar-test
 	const chunkSize = 4096
 	totalLen := len(b64Data)
 
@@ -61,18 +49,6 @@ func (k *KittyRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
 		buf.WriteString("\x1b\\")
 	}
 
-<<<<<<< HEAD
-	// 4. Restore cursor to top of image, move right past image area
-	buf.WriteString("\x1b[u")
-	fmt.Fprintf(buf, "\x1b[%dC", cfg.Width)
-
-	// 5. Output cfg.Height lines so composeFrame can place sysinfo alongside
-	for y := 1; y < cfg.Height; y++ {
-		buf.WriteByte('\n')
-		fmt.Fprintf(buf, "\x1b[%dC", cfg.Width)
-	}
-=======
 	// Restore cursor to original position
 	buf.WriteString("\x1b[u")
->>>>>>> bar-test
 }

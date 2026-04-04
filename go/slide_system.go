@@ -48,15 +48,15 @@ type sysField struct {
 }
 
 var sysFields = []sysField{
-	{"", "OS", "OS"},
-	{"", "Kernel", "Kernel"},
+	{"", "OS", "OS"},
+	{"", "Kernel", "Kernel"},
 	{"󰻠", "Arch", "Arch"},
 	{"󰒋", "Host", "Hostname"},
 	{"󰅐", "Uptime", "Uptime"},
-	{"", "Shell", "Shell"},
-	{"", "Term", "Terminal"},
-	{"", "DE", "DE"},
-	{"", "WM", "WM"},
+	{"", "Shell", "Shell"},
+	{"", "Term", "Terminal"},
+	{"", "DE", "DE"},
+	{"", "WM", "WM"},
 	{"󰏗", "Pkgs", "Packages"},
 }
 
