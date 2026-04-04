@@ -11,22 +11,25 @@ import (
 type KittyRenderer struct{}
 
 func (k *KittyRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
-	// 1. Clear previous image ID 1
+	// Save cursor, move to top-left for image placement
+	buf.WriteString("\x1b[s\x1b[1;1H")
+
+	// Delete previous image ID 1
 	buf.WriteString("\x1b_Ga=d,d=i,i=1\x1b\\")
 
-	// 2. Encode to PNG
+	// Encode to PNG
 	var pngBuf bytes.Buffer
 	if err := png.Encode(&pngBuf, img); err != nil {
+		buf.WriteString("\x1b[u") // restore cursor even on error
 		return
 	}
 
 	b64Data := base64.StdEncoding.EncodeToString(pngBuf.Bytes())
-	
-	// 3. Chunk the Base64 data to prevent terminal crashes
-	// We send 4096 bytes at a time (standard safe chunk size)
+
+	// Chunk the base64 data (4096 bytes per chunk)
 	const chunkSize = 4096
 	totalLen := len(b64Data)
-	
+
 	for i := 0; i < totalLen; i += chunkSize {
 		end := i + chunkSize
 		hasMore := 1
@@ -36,17 +39,16 @@ func (k *KittyRenderer) Render(buf *bytes.Buffer, img *image.RGBA, cfg Config) {
 		}
 
 		if i == 0 {
-			// First chunk: transmit headers (a=T, f=100, i=1, C=1, etc.)
-			fmt.Fprintf(buf, "\x1b_Ga=T,f=100,t=d,i=1,C=1,c=%d,r=%d,m=%d;", cfg.Width, cfg.Height, hasMore)
+			// First chunk: C=0 means don't move cursor after display
+			fmt.Fprintf(buf, "\x1b_Ga=T,f=100,t=d,i=1,C=0,c=%d,r=%d,m=%d;", cfg.Width, cfg.Height, hasMore)
 		} else {
-			// Subsequent chunks: only need the 'm' flag and the data
 			fmt.Fprintf(buf, "\x1b_Gm=%d;", hasMore)
 		}
-		
+
 		buf.WriteString(b64Data[i:end])
 		buf.WriteString("\x1b\\")
 	}
 
-	// 4. Position cursor for sysinfo next to the image
-	fmt.Fprintf(buf, "\x1b[%dC", cfg.Width+2)
+	// Restore cursor to original position
+	buf.WriteString("\x1b[u")
 }
